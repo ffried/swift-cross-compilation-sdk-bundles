@@ -64,6 +64,7 @@ jobs:
         env:
           REPO_VERSION: ${{ steps.repo-release.outputs.repo-version }}
           SWIFT_RELEASE: ${{ matrix.swift-release }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${REPO_VERSION}" \
             --draft \
