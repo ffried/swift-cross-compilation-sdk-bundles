@@ -1,0 +1,106 @@
+name: Generate cross-compilation SDK
+description: Generates a cross-compilation SDK with the given inputs.
+
+inputs:
+  swift-version:
+    description: 'Swift version'
+    required: true
+  host-os:
+    description: 'Host OS - cannot be changed currently'
+    required: true
+    default: 'macos'
+  host-os-version:
+    description: 'Host OS version - cannot be changed currently'
+    required: true
+    default: '13'
+  host-arch:
+    description: 'Host architecture'
+    required: true
+  target-arch:
+    description: 'Target architecture'
+    required: true
+  target-os:
+    description: 'Target OS'
+    required: true
+    default: 'ubuntu'
+  target-os-version:
+    description: 'Target OS version'
+    required: true
+    default: '22.04'
+
+outputs:
+  bundle-name:
+    description: 'Bundle name'
+    value: ${{ steps.generate-sdk.outputs.bundle-name }}
+  bundle-path:
+    description: 'Bundle path'
+    value: ${{ steps.generate-sdk.outputs.bundle-path }}
+  bundle-package-path:
+    description: 'Bundle package path'
+    value: ${{ steps.compress-sdk.outputs.bundle-package-path }}
+
+runs:
+  using: composite
+  steps:
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '^15.0'
+    - name: Install Dependencies
+      shell: bash
+      env:
+        HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+      run: brew install cmake colima docker ninja
+    - name: Start Colima
+      shell: bash
+      run: colima start
+    - uses: sersoft-gmbh/os-version-action@v3
+      id: os-version
+    - uses: sersoft-gmbh/swift-version-action@v3
+      id: swift-version
+    - uses: actions/checkout@v4
+      with:
+        repository: apple/swift-sdk-generator
+        path: swift-sdk-generator
+        persist-credentials: false
+    - uses: actions/cache@v3
+      with:
+        path: swift-sdk-generator/.build
+        key: ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-dependencies-${{ hashFiles('./swift-sdk-generator/**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-dependencies-
+    - name: Generate SDK
+      id: generate-sdk
+      shell: bash
+      working-directory: swift-sdk-generator
+      env:
+        SWIFT_VERSION: ${{ inputs.swift-version }}
+        HOST_OS: ${{ inputs.host-os }}
+        HOST_OS_VERSION: ${{ inputs.host-os-version }}
+        HOST_ARCH: ${{ inputs.host-arch }}
+        LINUX_DISTRIBUTION_NAME: ${{ inputs.target-os }}
+        LINUX_DISTRIBUTION_VERSION: ${{ inputs.target-os-version }}
+        TARGET_ARCH: ${{ inputs.arch }}
+      run: |
+        BUNDLE_NAME="swift_${SWIFT_VERSION}-${HOST_OS}_${HOST_OS_VERSION}_${HOST_ARCH}-${LINUX_DISTRIBUTION_NAME}_${LINUX_DISTRIBUTION_VERSION}_${TARGET_ARCH}"
+        swift run -c release \
+            swift-sdk-generator \
+              --with-docker \
+              --swift-version "${SWIFT_VERSION}-RELEASE" \
+              --host-arch "${HOST_ARCH}" \
+              --linux-distribution-name "${LINUX_DISTRIBUTION_NAME}" \
+              --linux-distribution-version "${LINUX_DISTRIBUTION_VERSION}" \
+              --target-arch "${TARGET_ARCH}" \
+              --sdk-name "${BUNDLE_NAME}"
+        BUNDLE="$(pwd)/Bundles/${BUNDLE_NAME}.artifactbundle"
+        echo "bundle-name=${BUNDLE_NAME}.artifactbundle" >> "${GITHUB_OUTPUT}"
+        echo "bundle-path=${BUNDLE}" >> "${GITHUB_OUTPUT}"
+    - name: Compress SDK
+      id: compress-sdk
+      shell: bash
+      working-directory: swift-sdk-generator
+      env:
+        BUNDLE_NAME: ${{ steps.generate-sdk.outputs.bundle-id }}
+        BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-path }}
+      run: |
+        tar -czf "${BUNDLE_NAME}.tar.gz" "${BUNDLE_PATH}"
+        echo "bundle-package-path=$(pwd)/BUNDLE_NAME}.tar.gz" >> "${GITHUB_OUTPUT}"

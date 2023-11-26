@@ -1,0 +1,71 @@
+name: Check for Swift releases
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # every day at midnight
+  workflow_dispatch:
+
+jobs:
+  swift-releases:
+    runs-on: ubuntu-latest
+    outputs:
+      releases: ${{ steps.swift-releases.outputs.releases }}
+    steps:
+      - name: List Swift releases
+        id: swift-releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASES="$(gh api 'repos/apple/swift/releases' --jq 'map(select(.prerelease == false and .draft == false) | .tag_name)' | jq -cr)"
+          echo "releases=${RELEASES}" >> "${GITHUB_OUTPUT}"
+
+  repo-releases:
+    runs-on: ubuntu-latest
+    outputs:
+      releases: ${{ steps.swift-releases.outputs.releases }}
+    steps:
+      - name: List Swift releases
+        id: swift-releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASES="$(gh api 'repos/{owner}/{repo}/releases' --jq 'map(.tag_name)' | jq -cr)"
+          echo "releases=${RELEASES}" >> "${GITHUB_OUTPUT}"
+
+  compare-with-repo-releases:
+    needs:
+      - swift-releases
+      - repo-releases
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift-release: ${{ fromJson(needs.swift-releases.outputs.releases) }}
+    steps:
+      - name: Determine Repo Release
+        id: repo-release
+        env:
+          SWIFT_RELEASE: ${{ matrix.swift-release }}
+        run: |
+          if [[ "${SWIFT_RELEASE}" =~ ^swift-([0-9]+)\.([0-9]+)(\.[0-9]+)?-RELEASE$ ]]; then
+            if [[ "${BASH_REMATCH[1]}" -ge 5 ]]; then
+              if [[ "${BASH_REMATCH[1]}" -gt 5 ]] || [[ "${BASH_REMATCH[2]}" -ge 9 ]]; then
+                echo "repo-version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}" >> "${GITHUB_OUTPUT}
+              else
+                echo "Skipping ${SWIFT_RELEASE} because it is older than Swift 5.9"
+              fi
+            else
+              echo "Skipping ${SWIFT_RELEASE} because it is older than Swift 5"
+            fi
+          else
+            echo "Skipping ${SWIFT_RELEASE} because it does not match the expected format"
+          fi
+      - name: Create Repo Release
+        if: ${{ steps.repo-release.outputs.repo-version != '' && !contains(fromJson(needs.repo-releases.outputs.releases), steps.repo-release.outputs.repo-version) }}
+        env:
+          REPO_VERSION: ${{ steps.repo-release.outputs.repo-version }}
+          SWIFT_RELEASE: ${{ matrix.swift-release }}
+        run: |
+          gh release create "${REPO_VERSION}" \
+            --draft \
+            --title "SDK for ${SWIFT_RELEASE}"\
+            --notes "This release contains the cross compiled SDK for ${SWIFT_RELEASE}."
