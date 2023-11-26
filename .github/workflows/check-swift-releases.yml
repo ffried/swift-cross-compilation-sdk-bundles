@@ -24,7 +24,7 @@ jobs:
     outputs:
       releases: ${{ steps.swift-releases.outputs.releases }}
     steps:
-      - name: List Swift releases
+      - name: List Repository releases
         id: swift-releases
         env:
           REPO: ${{ github.repository }}
@@ -63,11 +63,14 @@ jobs:
       - name: Create Repo Release
         if: ${{ steps.repo-release.outputs.repo-version != '' && !contains(fromJson(needs.repo-releases.outputs.releases), steps.repo-release.outputs.repo-version) }}
         env:
+          REPO: ${{ github.repository }}
           REPO_VERSION: ${{ steps.repo-release.outputs.repo-version }}
           SWIFT_RELEASE: ${{ matrix.swift-release }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${REPO_VERSION}" \
+          gh release create \
+            --repo "${REPO}" \
+            "${REPO_VERSION}" \
             --draft \
             --title "SDK for ${SWIFT_RELEASE}"\
             --notes "This release contains the cross compiled SDK for ${SWIFT_RELEASE}."
