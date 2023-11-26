@@ -27,9 +27,10 @@ jobs:
       - name: List Swift releases
         id: swift-releases
         env:
+          REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RELEASES="$(gh api 'repos/{owner}/{repo}/releases' --jq 'map(.tag_name)' | jq -cr)"
+          RELEASES="$(gh api "repos/${REPO}/releases" --jq 'map(.tag_name)' | jq -cr)"
           echo "releases=${RELEASES}" >> "${GITHUB_OUTPUT}"
 
   compare-with-repo-releases:
