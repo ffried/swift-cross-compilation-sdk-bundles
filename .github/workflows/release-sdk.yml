@@ -40,8 +40,9 @@ jobs:
           target-arch: ${{ matrix.target-arch }}
       - name: Upload asset
         env:
+          REPO: ${{ github.repository }}
           RELEASE_NAME: ${{ github.ref_name }}
           ASSET_PATH: ${{ steps.generate-sdk.outputs.bundle-package-path }}
           ASSET_NAME: ${{ steps.generate-sdk.outputs.bundle-name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload --clobber "${RELEASE_NAME}" "${ASSET_PATH}#${ASSET_NAME}"
+        run: gh release upload --repo "${REPO}" --clobber "${RELEASE_NAME}" "${ASSET_PATH}#${ASSET_NAME}"
