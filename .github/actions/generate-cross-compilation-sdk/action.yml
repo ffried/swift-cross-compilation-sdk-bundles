@@ -98,7 +98,7 @@ runs:
       id: compress-sdk
       shell: bash
       env:
-        BUNDLE_NAME: ${{ steps.generate-sdk.outputs.bundle-id }}
+        BUNDLE_NAME: ${{ steps.generate-sdk.outputs.bundle-name }}
         BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-path }}
       run: |
         tar -czf "${BUNDLE_NAME}.tar.gz" "${BUNDLE_PATH}"
