@@ -97,10 +97,9 @@ runs:
     - name: Compress SDK
       id: compress-sdk
       shell: bash
-      working-directory: swift-sdk-generator
       env:
         BUNDLE_NAME: ${{ steps.generate-sdk.outputs.bundle-id }}
         BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-path }}
       run: |
         tar -czf "${BUNDLE_NAME}.tar.gz" "${BUNDLE_PATH}"
-        echo "bundle-package-path=$(pwd)/BUNDLE_NAME}.tar.gz" >> "${GITHUB_OUTPUT}"
+        echo "bundle-package-path=$(pwd)/${BUNDLE_NAME}.tar.gz" >> "${GITHUB_OUTPUT}"
