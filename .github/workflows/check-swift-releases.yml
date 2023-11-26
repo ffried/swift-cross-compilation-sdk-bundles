@@ -23,7 +23,7 @@ jobs:
   repo-releases:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # required to get draft releases
     outputs:
       releases: ${{ steps.swift-releases.outputs.releases }}
     steps:
