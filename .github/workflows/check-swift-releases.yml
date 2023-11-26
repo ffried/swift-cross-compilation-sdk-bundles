@@ -44,6 +44,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         swift-release: ${{ fromJson(needs.swift-releases.outputs.releases) }}
     steps:
