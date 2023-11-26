@@ -79,7 +79,7 @@ runs:
         HOST_ARCH: ${{ inputs.host-arch }}
         LINUX_DISTRIBUTION_NAME: ${{ inputs.target-os }}
         LINUX_DISTRIBUTION_VERSION: ${{ inputs.target-os-version }}
-        TARGET_ARCH: ${{ inputs.arch }}
+        TARGET_ARCH: ${{ inputs.target-arch }}
       run: |
         BUNDLE_NAME="swift_${SWIFT_VERSION}-${HOST_OS}_${HOST_OS_VERSION}_${HOST_ARCH}-${LINUX_DISTRIBUTION_NAME}_${LINUX_DISTRIBUTION_VERSION}_${TARGET_ARCH}"
         swift run -c release \
