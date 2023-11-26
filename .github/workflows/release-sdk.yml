@@ -7,6 +7,8 @@ on:
 
 jobs:
   build-sdk:
+    permissions:
+      contents: write
     strategy:
       matrix:
         host-os:
@@ -25,9 +27,10 @@ jobs:
           - '22.04'
     runs-on: ${{ matrix.host-os }}-${{ matrix.host-os-version }}
     steps:
-      - uses: ffried/swift-cross-compilation-sdk/.github/actions/generate-cross-compilation-sdk@main
+      - uses: ffried/swift-cross-compilation-sdk-bundles/.github/actions/generate-cross-compilation-sdk@main
         id: generate-sdk
         with:
+          swift-version: ${{ github.ref_name }}
           host-os: ${{ matrix.host-os }}
           host-os-version: ${{ matrix.host-os-version }}
           host-arch: ${{ matrix.host-arch }}

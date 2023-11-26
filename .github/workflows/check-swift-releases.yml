@@ -7,6 +7,7 @@ on:
 
 jobs:
   swift-releases:
+    permissions: {}
     runs-on: ubuntu-latest
     outputs:
       releases: ${{ steps.swift-releases.outputs.releases }}
@@ -21,6 +22,8 @@ jobs:
 
   repo-releases:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       releases: ${{ steps.swift-releases.outputs.releases }}
     steps:
@@ -37,6 +40,8 @@ jobs:
     needs:
       - swift-releases
       - repo-releases
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -68,9 +73,8 @@ jobs:
           SWIFT_RELEASE: ${{ matrix.swift-release }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create \
+          gh release create "${REPO_VERSION}" \
             --repo "${REPO}" \
-            "${REPO_VERSION}" \
             --draft \
             --title "SDK for ${SWIFT_RELEASE}"\
             --notes "This release contains the cross compiled SDK for ${SWIFT_RELEASE}."
