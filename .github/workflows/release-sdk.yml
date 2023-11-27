@@ -8,11 +8,13 @@ on:
     inputs:
       release:
         description: The release (tag name) to add the SDK assets to
+        type: string
         required: true
       force-recreate:
         description: Whether to force the recreation of existing assets
+        type: boolean
         required: false
-        default: 'false'
+        default: false
 
 jobs:
   context:
