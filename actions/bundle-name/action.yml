@@ -41,7 +41,6 @@ runs:
     - name: Compose SDK bundle names
       id: names
       shell: bash
-      working-directory: swift-sdk-generator
       env:
         SWIFT_VERSION: ${{ inputs.swift-version }}
         HOST_OS: ${{ inputs.host-os }}
