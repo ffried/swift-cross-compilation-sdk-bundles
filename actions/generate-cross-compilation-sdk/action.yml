@@ -87,8 +87,8 @@ runs:
         HOST_OS: ${{ inputs.host-os }}
         HOST_OS_VERSION: ${{ inputs.host-os-version }}
         HOST_ARCH: ${{ inputs.host-arch }}
-        LINUX_DISTRIBUTION_NAME: ${{ inputs.target-os }}
-        LINUX_DISTRIBUTION_VERSION: ${{ inputs.target-os-version }}
+        TARGET_OS: ${{ inputs.target-os }}
+        TARGET_OS_VERSION: ${{ inputs.target-os-version }}
         TARGET_ARCH: ${{ inputs.target-arch }}
         BUNDLE_NAME: ${{ steps.bundle-names.outputs.base-name }}
         BUNDLE_FULL_NAME: ${{ steps.bundle-names.outputs.full-name }}
@@ -98,8 +98,8 @@ runs:
               --with-docker \
               --swift-version "${SWIFT_VERSION}-RELEASE" \
               --host-arch "${HOST_ARCH}" \
-              --linux-distribution-name "${LINUX_DISTRIBUTION_NAME}" \
-              --linux-distribution-version "${LINUX_DISTRIBUTION_VERSION}" \
+              --linux-distribution-name "${TARGET_OS}" \
+              --linux-distribution-version "${TARGET_ARCH}" \
               --target-arch "${TARGET_ARCH}" \
               --sdk-name "${BUNDLE_NAME}"
         echo "bundle-path=$(pwd)/Bundles/${BUNDLE_FULL_NAME}" >> "${GITHUB_OUTPUT}"
@@ -113,6 +113,7 @@ runs:
         PACKAGE_NAME="${BUNDLE_NAME}.zip"
         PACKAGE_PATH="$(pwd)/${PACKAGE_NAME}"
         CHECKSUM_PATH="$(pwd)/${BUNDLE_NAME}.checksum"
+        echo "Bundle contents:\n$(ls -la "${BUNDLE_PATH}")"
         pushd "$(dirname "${BUNDLE_PATH}")" > /dev/null
         zip -9 -yr "${PACKAGE_PATH}" "${BUNDLE_NAME}" -x '*.DS_Store'
         popd > /dev/null
