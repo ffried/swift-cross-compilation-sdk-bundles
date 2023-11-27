@@ -2,7 +2,7 @@ name: Check for Swift releases
 
 on:
   schedule:
-    - cron: "0 0 * * *" # every day at midnight
+    - cron: '12 */6 * * *' # At minute 12 past every 6th hour
   workflow_dispatch:
 
 jobs:
@@ -77,5 +77,5 @@ jobs:
           gh release create "${REPO_VERSION}" \
             --repo "${REPO}" \
             --draft \
-            --title "SDK for ${SWIFT_RELEASE}"\
-            --notes "This release contains the cross compiled SDK for ${SWIFT_RELEASE}."
+            --title "SDKs for ${SWIFT_RELEASE}"\
+            --notes "This release contains the cross compilation SDKs for ${SWIFT_RELEASE}."
