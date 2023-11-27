@@ -78,9 +78,9 @@ runs:
         ASSET_NAME: ${{ steps.names.outputs.full-name }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        ASSETS_BY_LABEL_JSON="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq '.assets | map({"key": .label, "value": .url}) | from_entries')"
-        BUNDLE_ASSET_URL="$(echo "${ASSETS_BY_LABEL_JSON}" | jq -r ".[\"${ASSET_NAME}\"]")"
-        CHECKSUM_ASSET_URL="$(echo "${ASSETS_BY_LABEL_JSON}" | jq -r ".[\"${ASSET_NAME}.checksum\"]")"
+        ASSETS_BY_NAME_JSON="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq '.assets | map({"key": (if ((.label // "") | length == 0) then .name else .label end), "value": .url}) | from_entries')"
+        BUNDLE_ASSET_URL="$(echo "${ASSETS_BY_NAME_JSON}" | jq -cr ".[\"${ASSET_NAME}\"] // \"\"")"
+        CHECKSUM_ASSET_URL="$(echo "${ASSETS_BY_NAME_JSON}" | jq -cr ".[\"${ASSET_NAME}.checksum\"] // \"\"")"
         if [ -z "${BUNDLE_ASSET_URL}" ]; then
           echo "::error::Release ${RELEASE_NAME} or asset ${ASSET_NAME} not found!"
           exit 1
