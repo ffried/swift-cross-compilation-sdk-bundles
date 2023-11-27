@@ -1,0 +1,64 @@
+name: Setup cross-compilation SDK
+description: Finds and installs the cross-compilation SDK for the given inputs.
+
+inputs:
+  swift-version:
+    description: 'Swift version'
+    required: true
+  host-os:
+    description: 'Host OS'
+    required: true
+  host-os-version:
+    description: 'Host OS version'
+    required: true
+  host-arch:
+    description: 'Host architecture'
+    required: true
+  target-arch:
+    description: 'Target architecture'
+    required: true
+  target-os:
+    description: 'Target OS'
+    required: true
+  target-os-version:
+    description: 'Target OS version'
+    required: true
+
+outputs:
+  sdk-bundle-name:
+    description: 'SDK bundle name'
+    value: ${{ steps.names.outputs.base-name }}
+
+runs:
+  using: composite
+  steps:
+    - uses: ffried/swift-cross-compilation-sdk-bundles/actions/bundle-name@main
+      id: names
+      with:
+        swift-version: ${{ inputs.swift-version }}
+        host-os: ${{ inputs.host-os }}
+        host-os-version: ${{ inputs.host-os-version }}
+        host-arch: ${{ inputs.host-arch }}
+        target-os: ${{ inputs.target-os }}
+        target-os-version: ${{ inputs.target-os-version }}
+        target-arch: ${{ inputs.target-arch }}
+    - name: Find SDK asset url
+      shell: bash
+      id: sdk-asset
+      env:
+        REPO: 'ffried/swift-cross-compilation-sdk-bundles'
+        RELEASE_NAME: ${{ inputs.swift-version }}
+        ASSET_NAME: ${{ steps.names.outputs.full-name }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ASSET_URL="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq "(.assets | map({\"key\": .label, \"value\": .url}) | from_entries)[\"${ASSET_NAME}\"]")"
+        if [ -z "${ASSET_URL}" ]; then
+          echo "::error::Release ${RELEASE_NAME} or asset ${ASSET_NAME} not found!"
+          exit 1
+        fi
+        echo "url=${ASSET_URL}" >> "${GITHUB_OUTPUT}"
+    - name: Install SDK
+      shell: bash
+      env:
+        SDK_URL: ${{ steps.sdk-asset.outputs.url }}
+      run: swift experimental-sdk install "${SDK_URL}"

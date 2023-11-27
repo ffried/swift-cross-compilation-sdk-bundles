@@ -1,0 +1,58 @@
+name: Compose SDK bundle name
+description: Composes the SDK bundle name from the given inputs.
+
+inputs:
+  swift-version:
+    description: 'Swift version'
+    required: true
+  host-os:
+    description: 'Host OS'
+    required: true
+  host-os-version:
+    description: 'Host OS version'
+    required: true
+  host-arch:
+    description: 'Host architecture'
+    required: true
+  target-arch:
+    description: 'Target architecture'
+    required: true
+  target-os:
+    description: 'Target OS'
+    required: true
+  target-os-version:
+    description: 'Target OS version'
+    required: true
+
+outputs:
+  base-name:
+    description: 'Base name (without extension)'
+    value: ${{ steps.names.outputs.base-name }}
+  full-name:
+    description: 'Full name (with extension)'
+    value: ${{ steps.names.outputs.full-name }}
+  package-name:
+    description: 'Full name of compressed bundle (with extension)'
+    value: ${{ steps.names.outputs.package-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compose SDK bundle names
+      id: names
+      shell: bash
+      working-directory: swift-sdk-generator
+      env:
+        SWIFT_VERSION: ${{ inputs.swift-version }}
+        HOST_OS: ${{ inputs.host-os }}
+        HOST_OS_VERSION: ${{ inputs.host-os-version }}
+        HOST_ARCH: ${{ inputs.host-arch }}
+        TARGET_OS_NAME: ${{ inputs.target-os }}
+        TARGET_OS_VERSION: ${{ inputs.target-os-version }}
+        TARGET_ARCH: ${{ inputs.target-arch }}
+      run: |
+        BUNDLE_BASE_NAME="swift_${SWIFT_VERSION}-${HOST_OS}_${HOST_OS_VERSION}_${HOST_ARCH}-${TARGET_OS_NAME}_${TARGET_OS_VERSION}_${TARGET_ARCH}"
+        BUNDLE_FULL_NAME="${BUNDLE_BASE_NAME}.artifactbundle"
+        echo "base-name=${BUNDLE_BASE_NAME}" >> "${GITHUB_OUTPUT}"
+        echo "full-name=${BUNDLE_FULL_NAME}" >> "${GITHUB_OUTPUT}"
+        echo "package-name=${BUNDLE_FULL_NAME}.tar.gz" >> "${GITHUB_OUTPUT}"
