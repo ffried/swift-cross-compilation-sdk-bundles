@@ -108,5 +108,5 @@ runs:
         PACKAGE_NAME: ${{ steps.bundle-names.outputs.package-name }}
         BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-path }}
       run: |
-        tar -czf "${PACKAGE_NAME}" "${BUNDLE_PATH}"
+        tar -czf "${PACKAGE_NAME}" -C "${BUNDLE_PATH}" .
         echo "bundle-package-path=$(pwd)/${PACKAGE_NAME}" >> "${GITHUB_OUTPUT}"
