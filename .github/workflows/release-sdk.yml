@@ -91,7 +91,7 @@ jobs:
           ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          FOUND="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq ".assets | map(.label) | contains([\"${ASSET_NAME}\"])")"
+          FOUND="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq ".assets | map(.label) | contains([\"${ASSET_NAME}\",\"${ASSET_NAME}.checksum\"])")"
           echo "found=${FOUND}" >> "${GITHUB_OUTPUT}"
       - uses: ffried/swift-cross-compilation-sdk-bundles/actions/generate-cross-compilation-sdk@main
         if: ${{ steps.existing-asset.outputs.found != 'true' }}
@@ -104,12 +104,19 @@ jobs:
           target-os: ${{ steps.os-details.outputs.target-os }}
           target-os-version: ${{ steps.os-details.outputs.target-os-version }}
           target-arch: ${{ matrix.target-arch }}
-      - name: Upload asset
+      - name: Upload assets
         if: ${{ steps.existing-asset.outputs.found != 'true' }}
         env:
           REPO: ${{ github.repository }}
           RELEASE_NAME: ${{ needs.context.outputs.release-name }}
-          ASSET_PATH: ${{ steps.generate-sdk.outputs.bundle-package-path }}
-          ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
+          BUNDLE_NAME: ${{ steps.bundle-names.outputs.full-name }}
+          BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-package-path }}
+          CHECKSUM_PATH: ${{ steps.generate-sdk.outputs.bundle-package-checksum-path }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload --repo "${REPO}" --clobber "${RELEASE_NAME}" "${ASSET_PATH}#${ASSET_NAME}"
+        run: |
+          gh release upload \
+            --repo "${REPO}" \
+            --clobber \
+            "${RELEASE_NAME}" \
+            "${BUNDLE_PATH}#${BUNDLE_NAME}" \
+            "${CHECKSUM_PATH}"

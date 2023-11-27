@@ -35,6 +35,9 @@ outputs:
   bundle-package-path:
     description: 'Bundle package path'
     value: ${{ steps.compress-sdk.outputs.bundle-package-path }}
+  bundle-package-checksum-path:
+    description: 'Bundle package checksum path'
+    value: ${{ steps.compress-sdk.outputs.bundle-package-checksum-path }}
 
 runs:
   using: composite
@@ -105,8 +108,14 @@ runs:
       shell: bash
       env:
         BUNDLE_NAME: ${{ steps.bundle-names.outputs.full-name }}
-        PACKAGE_NAME: ${{ steps.bundle-names.outputs.package-name }}
         BUNDLE_PATH: ${{ steps.generate-sdk.outputs.bundle-path }}
       run: |
-        tar -czf "${PACKAGE_NAME}" -C "${BUNDLE_PATH}" .
-        echo "bundle-package-path=$(pwd)/${PACKAGE_NAME}" >> "${GITHUB_OUTPUT}"
+        PACKAGE_NAME="${BUNDLE_NAME}.zip"
+        PACKAGE_PATH="$(pwd)/${PACKAGE_NAME}"
+        CHECKSUM_PATH="$(pwd)/${BUNDLE_NAME}.checksum"
+        pushd "$(dirname "${BUNDLE_PATH}")" > /dev/null
+        zip -9 -yr "${PACKAGE_PATH}" "${BUNDLE_NAME}" -x '*.DS_Store'
+        popd > /dev/null
+        swift package compute-checksum "${PACKAGE_PATH}" > "${CHECKSUM_PATH}"
+        echo "bundle-package-path=${PACKAGE_PATH}" >> "${GITHUB_OUTPUT}"
+        echo "bundle-package-checksum-path=${CHECKSUM_PATH}" >> "${GITHUB_OUTPUT}"

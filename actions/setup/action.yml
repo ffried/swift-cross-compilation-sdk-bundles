@@ -3,7 +3,7 @@ description: Finds and installs the cross-compilation SDK for the given inputs.
 
 inputs:
   swift-version:
-    description: 'Swift version'
+    description: 'Swift version - can either be a full version string (e.g. 5.5.1) or a major.minor version string (e.g. 5.5) in which case the latest patch version is used.'
     required: true
   host-os:
     description: 'Host OS'
@@ -36,33 +36,68 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Find release
+      id: release
+      shell: bash
+      env:
+        REPO: 'ffried/swift-cross-compilation-sdk-bundles'
+        SWIFT_VERSION: ${{ inputs.swift-version }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        RELEASE_TAG=''
+        if [ "$(echo "${SWIFT_VERSION}" | tr '.' '\n' | wc -l)" -eq 3 ]; then
+          if [ "$(echo "${SWIFT_VERSION}" | cut -d'.' -f3)" -eq 0 ]; then
+            RELEASE_TAG="$(echo "${SWIFT_VERSION}" | cut -d'.' -f1-2)"
+          else
+            RELEASE_TAG="${SWIFT_VERSION}"
+          fi
+        else
+          RELEASE_TAG="$(gh api "repos/${REPO}/releases" --paginate --jq "map(.tag_name | select(. | startswith(\"${SWIFT_VERSION}\"))) | .[]" | sort -rV | head -1)"
+        fi
+        if [ -z "${RELEASE_TAG}" ]; then
+          echo "::error::No release found for Swift version ${SWIFT_VERSION}!"
+          exit 1
+        fi
+        echo "release-tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
     - uses: ffried/swift-cross-compilation-sdk-bundles/actions/bundle-name@main
       id: names
       with:
-        swift-version: ${{ inputs.swift-version }}
+        swift-version: ${{ steps.release.outputs.release-tag }}
         host-os: ${{ inputs.host-os }}
         host-os-version: ${{ inputs.host-os-version }}
         host-arch: ${{ inputs.host-arch }}
         target-os: ${{ inputs.target-os }}
         target-os-version: ${{ inputs.target-os-version }}
         target-arch: ${{ inputs.target-arch }}
-    - name: Find SDK asset url
+    - name: Find asset urls
       shell: bash
       id: sdk-asset
       env:
         REPO: 'ffried/swift-cross-compilation-sdk-bundles'
-        RELEASE_NAME: ${{ inputs.swift-version }}
+        RELEASE_NAME: ${{ steps.release.outputs.release-tag }}
         ASSET_NAME: ${{ steps.names.outputs.full-name }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        ASSET_URL="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq "(.assets | map({\"key\": .label, \"value\": .url}) | from_entries)[\"${ASSET_NAME}\"]")"
-        if [ -z "${ASSET_URL}" ]; then
+        ASSETS_BY_LABEL_JSON="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq '.assets | map({"key": .label, "value": .url}) | from_entries')"
+        BUNDLE_ASSET_URL="$(echo "${ASSETS_BY_LABEL_JSON}" | jq -r ".[\"${ASSET_NAME}\"]")"
+        CHECKSUM_ASSET_URL="$(echo "${ASSETS_BY_LABEL_JSON}" | jq -r ".[\"${ASSET_NAME}.checksum\"]")"
+        if [ -z "${BUNDLE_ASSET_URL}" ]; then
           echo "::error::Release ${RELEASE_NAME} or asset ${ASSET_NAME} not found!"
           exit 1
         fi
-        echo "url=${ASSET_URL}" >> "${GITHUB_OUTPUT}"
+        echo "bundle-url=${BUNDLE_ASSET_URL}" >> "${GITHUB_OUTPUT}"
+        echo "checksum-url=${CHECKSUM_ASSET_URL}" >> "${GITHUB_OUTPUT}"
     - name: Install SDK
       shell: bash
       env:
-        SDK_URL: ${{ steps.sdk-asset.outputs.url }}
-      run: swift experimental-sdk install "${SDK_URL}"
+        SDK_URL: ${{ steps.sdk-asset.outputs.bundle-url }}
+        CHECKSUM_URL: ${{ steps.sdk-asset.outputs.checksum-url }}
+      run: |
+        if [ -n "${CHECKSUM_URL}" ]; then
+          CHECKSUM="$(curl -sSL "${CHECKSUM_URL}")"
+          # Checksums don't seem to be implemented yet...
+          # swift experimental-sdk install "${SDK_URL}" --checksum "${CHECKSUM}"
+          swift experimental-sdk install "${SDK_URL}"
+        else
+          swift experimental-sdk install "${SDK_URL}"
+        fi

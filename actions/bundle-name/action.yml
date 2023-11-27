@@ -31,9 +31,6 @@ outputs:
   full-name:
     description: 'Full name (with extension)'
     value: ${{ steps.names.outputs.full-name }}
-  package-name:
-    description: 'Full name of compressed bundle (with extension)'
-    value: ${{ steps.names.outputs.package-name }}
 
 runs:
   using: composite
@@ -54,4 +51,3 @@ runs:
         BUNDLE_FULL_NAME="${BUNDLE_BASE_NAME}.artifactbundle"
         echo "base-name=${BUNDLE_BASE_NAME}" >> "${GITHUB_OUTPUT}"
         echo "full-name=${BUNDLE_FULL_NAME}" >> "${GITHUB_OUTPUT}"
-        echo "package-name=${BUNDLE_FULL_NAME}.tar.gz" >> "${GITHUB_OUTPUT}"
