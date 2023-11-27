@@ -70,18 +70,22 @@ runs:
     - uses: actions/checkout@v4
       with:
         repository: apple/swift-sdk-generator
-        path: swift-sdk-generator
         persist-credentials: false
     - uses: actions/cache@v3
       with:
-        path: swift-sdk-generator/.build
-        key: ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-dependencies-${{ hashFiles('./swift-sdk-generator/**/Package.resolved') }}
+        path: .build
+        key: ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-dependencies-${{ hashFiles('**/Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-dependencies-
+    - uses: actions/cache@v3
+      with:
+        path: Artifacts
+        key: ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-artifacts-${{ steps.bundle-names.outputs.base-name }}
+        restore-keys: |
+          ${{ runner.os }}-${{ steps.os-version.outputs.version }}-swift-${{ steps.swift-version.outputs.version }}-swift-sdk-generator-artifacts-${{ steps.bundle-names.outputs.base-name }}
     - name: Generate SDK
       id: generate-sdk
       shell: bash
-      working-directory: swift-sdk-generator
       env:
         SWIFT_VERSION: ${{ inputs.swift-version }}
         HOST_OS: ${{ inputs.host-os }}
@@ -113,7 +117,6 @@ runs:
         PACKAGE_NAME="${BUNDLE_NAME}.zip"
         PACKAGE_PATH="$(pwd)/${PACKAGE_NAME}"
         CHECKSUM_PATH="$(pwd)/${BUNDLE_NAME}.checksum"
-        echo "Bundle contents:\n$(ls -la "${BUNDLE_PATH}")"
         pushd "$(dirname "${BUNDLE_PATH}")" > /dev/null
         zip -9 -yr "${PACKAGE_PATH}" "${BUNDLE_NAME}" -x '*.DS_Store'
         popd > /dev/null
