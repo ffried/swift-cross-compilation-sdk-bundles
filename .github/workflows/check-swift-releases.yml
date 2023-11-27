@@ -36,7 +36,7 @@ jobs:
                   if [[ "${BASH_REMATCH[1]}" -gt 5 ]] || [[ "${BASH_REMATCH[2]}" -ge 9 ]]; then
                     OUR_RELEASE_TAG="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
                     echo "::debug::Checking for ${OUR_RELEASE_TAG} of ${SWIFT_RELEASE}..."
-                    if ! gh release view --repo "${OUR_REPO}" "${OUR_RELEASE_TAG}" > /dev/null 2&>1; then
+                    if ! gh release view --repo "${OUR_REPO}" "${OUR_RELEASE_TAG}" > /dev/null 2>&1; then
                       RELEASE_JSON="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" '{"version": $TAG, "swift": $SWIFT}')"
                       MISSING_RELEASES="$(jq -cn --arg ELEMENT "${RELEASE_JSON}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [$ELEMENT]')"
                       DID_ADD=1
