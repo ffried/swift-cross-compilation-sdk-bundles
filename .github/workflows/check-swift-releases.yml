@@ -16,6 +16,7 @@ jobs:
       - name: Find missing releases
         id: missing-releases
         env:
+          OUR_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PAGE=1
@@ -33,8 +34,13 @@ jobs:
                 if [[ "${BASH_REMATCH[1]}" -ge 5 ]]; then
                   if [[ "${BASH_REMATCH[1]}" -gt 5 ]] || [[ "${BASH_REMATCH[2]}" -ge 9 ]]; then
                     OUR_RELEASE_TAG="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
-                    MISSING_RELEASES="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [{"version": $TAG, "swift": $SWIFT}]')"
-                    DID_ADD=1
+                    echo "::debug::Checking for ${OUR_RELEASE_TAG} of ${SWIFT_RELEASE}..."
+                    if ! gh release view --repo "${OUR_REPO}" "${OUR_RELEASE_TAG}" > /dev/null 2&>1; then
+                      MISSING_RELEASES="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [{"version": $TAG, "swift": $SWIFT}]')"
+                      DID_ADD=1
+                    else
+                      echo "::debug::${OUR_RELEASE_TAG} of ${SWIFT_RELEASE} already exists."
+                    fi
                   else
                     echo "::debug::Skipping ${SWIFT_RELEASE} because it is older than Swift 5.9."
                   fi
