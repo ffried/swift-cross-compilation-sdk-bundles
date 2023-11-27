@@ -99,7 +99,7 @@ runs:
               --swift-version "${SWIFT_VERSION}-RELEASE" \
               --host-arch "${HOST_ARCH}" \
               --linux-distribution-name "${TARGET_OS}" \
-              --linux-distribution-version "${TARGET_ARCH}" \
+              --linux-distribution-version "${TARGET_OS_VERSION}" \
               --target-arch "${TARGET_ARCH}" \
               --sdk-name "${BUNDLE_NAME}"
         echo "bundle-path=$(pwd)/Bundles/${BUNDLE_FULL_NAME}" >> "${GITHUB_OUTPUT}"
