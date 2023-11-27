@@ -26,6 +26,7 @@ jobs:
           }
 
           MISSING_RELEASES='[]'
+          echo "::debug::Fetching page ${PAGE} of swift releases..."
           RELEASES_JSON="$(fetch-releases)"
           while [[ -n "${RELEASES_JSON}" ]]; do
             DID_ADD=0
@@ -36,7 +37,8 @@ jobs:
                     OUR_RELEASE_TAG="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
                     echo "::debug::Checking for ${OUR_RELEASE_TAG} of ${SWIFT_RELEASE}..."
                     if ! gh release view --repo "${OUR_REPO}" "${OUR_RELEASE_TAG}" > /dev/null 2&>1; then
-                      MISSING_RELEASES="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [{"version": $TAG, "swift": $SWIFT}]')"
+                      RELEASE_JSON="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" '{"version": $TAG, "swift": $SWIFT}')"
+                      MISSING_RELEASES="$(jq -cn --arg ELEMENT "${RELEASE_JSON}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [$ELEMENT]')"
                       DID_ADD=1
                     else
                       echo "::debug::${OUR_RELEASE_TAG} of ${SWIFT_RELEASE} already exists."
@@ -52,9 +54,11 @@ jobs:
               fi
             done <<< "${RELEASES_JSON}"
             if [[ "${DID_ADD}" -eq 0 ]]; then
+              echo "::debug::No releases were added - stopping pagination."
               break
             fi
             ((PAGE++))
+            echo "::debug::Fetching page ${PAGE} of swift releases..."
             RELEASES_JSON="$(fetch-releases)"
           done
           echo "missing-releases=${MISSING_RELEASES}" >> "${GITHUB_OUTPUT}"
