@@ -44,6 +44,7 @@ jobs:
           REPO: ${{ github.repository }}
           RELEASE_NAME: ${{ github.ref_name }}
           ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FOUND="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq ".assets | map(.label) | contains([\"${ASSET_NAME}\"]))")"
           echo "found=${FOUND}" >> "${GITHUB_OUTPUT}"
@@ -65,5 +66,5 @@ jobs:
           RELEASE_NAME: ${{ github.ref_name }}
           ASSET_PATH: ${{ steps.generate-sdk.outputs.bundle-package-path }}
           ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload --repo "${REPO}" --clobber "${RELEASE_NAME}" "${ASSET_PATH}#${ASSET_NAME}"
