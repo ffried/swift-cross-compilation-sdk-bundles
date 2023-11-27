@@ -4,9 +4,35 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      release:
+        description: The release (tag name) to add the SDK assets to
+        required: true
 
 jobs:
+  context:
+    permissions: {}
+    runs-on: ubuntu-latest
+    outputs:
+      release-name: ${{ steps.release.outputs.tag }}
+      swift-version: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Determine Release
+        id: release
+        env:
+          TRIGGER: ${{ github.event_name }}
+          RELEASE_INPUT: ${{ github.event.inputs.release }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "${TRIGGER}" = 'workflow_dispatch' ]; then
+            echo "tag=${RELEASE_INPUT}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "tag=${REF_NAME}" >> "${GITHUB_OUTPUT}"
+          fi
+
   build-sdk:
+    needs: context
     permissions:
       contents: write
     strategy:
@@ -31,7 +57,7 @@ jobs:
       - uses: ffried/swift-cross-compilation-sdk-bundles/actions/bundle-name@main
         id: bundle-names
         with:
-          swift-version: ${{ github.ref_name }}
+          swift-version: ${{ needs.context.outputs.swift-version }}
           host-os: ${{ matrix.host-os }}
           host-os-version: ${{ matrix.host-os-version }}
           host-arch: ${{ matrix.host-arch }}
@@ -42,7 +68,7 @@ jobs:
         id: existing-asset
         env:
           REPO: ${{ github.repository }}
-          RELEASE_NAME: ${{ github.ref_name }}
+          RELEASE_NAME: ${{ needs.context.outputs.release-name }}
           ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -52,7 +78,7 @@ jobs:
         if: ${{ steps.existing-asset.outputs.found != 'true' }}
         id: generate-sdk
         with:
-          swift-version: ${{ github.ref_name }}
+          swift-version: ${{ needs.context.outputs.swift-version }}
           host-os: ${{ matrix.host-os }}
           host-os-version: ${{ matrix.host-os-version }}
           host-arch: ${{ matrix.host-arch }}
@@ -63,7 +89,7 @@ jobs:
         if: ${{ steps.existing-asset.outputs.found != 'true' }}
         env:
           REPO: ${{ github.repository }}
-          RELEASE_NAME: ${{ github.ref_name }}
+          RELEASE_NAME: ${{ needs.context.outputs.release-name }}
           ASSET_PATH: ${{ steps.generate-sdk.outputs.bundle-package-path }}
           ASSET_NAME: ${{ steps.bundle-names.outputs.full-name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
