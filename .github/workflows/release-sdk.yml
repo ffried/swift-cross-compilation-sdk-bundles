@@ -9,26 +9,34 @@ on:
       release:
         description: The release (tag name) to add the SDK assets to
         required: true
+      force-recreate:
+        description: Whether to force the recreation of existing assets
+        required: false
+        default: 'false'
 
 jobs:
   context:
     permissions: {}
     runs-on: ubuntu-latest
     outputs:
-      release-name: ${{ steps.release.outputs.tag }}
-      swift-version: ${{ steps.release.outputs.tag }}
+      release-name: ${{ steps.variables.outputs.tag }}
+      swift-version: ${{ steps.variables.outputs.tag }}
+      force-recreate: ${{ steps.variables.outputs.force-recreate }}
     steps:
-      - name: Determine Release
-        id: release
+      - name: Determine Variables
+        id: variables
         env:
           TRIGGER: ${{ github.event_name }}
-          RELEASE_INPUT: ${{ github.event.inputs.release }}
           REF_NAME: ${{ github.ref_name }}
+          RELEASE_INPUT: ${{ inputs.release }}
+          FORCE_RECREATE_INPUT: ${{ inputs.force-recreate }}
         run: |
           if [ "${TRIGGER}" = 'workflow_dispatch' ]; then
             echo "tag=${RELEASE_INPUT}" >> "${GITHUB_OUTPUT}"
+            echo "force-recreate=${FORCE_RECREATE_INPUT}" >> "${GITHUB_OUTPUT}"
           else
             echo "tag=${REF_NAME}" >> "${GITHUB_OUTPUT}"
+            echo "force-recreate=false" >> "${GITHUB_OUTPUT}"
           fi
 
   build-sdk:
@@ -75,6 +83,7 @@ jobs:
           target-os-version: ${{ steps.os-details.outputs.target-os-version }}
           target-arch: ${{ matrix.target-arch }}
       - name: Check for existing asset
+        if: ${{ needs.context.outputs.force-recreate != 'true' }}
         id: existing-asset
         env:
           REPO: ${{ github.repository }}
