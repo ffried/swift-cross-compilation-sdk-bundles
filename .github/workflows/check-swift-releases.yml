@@ -6,72 +6,69 @@ on:
   workflow_dispatch:
 
 jobs:
-  swift-releases:
-    permissions: {}
-    runs-on: ubuntu-latest
-    outputs:
-      releases: ${{ steps.swift-releases.outputs.releases }}
-    steps:
-      - name: List Swift releases
-        id: swift-releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          RELEASES="$(gh api 'repos/apple/swift/releases' --jq 'map(select(.prerelease == false and .draft == false) | .tag_name)' | jq -cr)"
-          echo "releases=${RELEASES}" >> "${GITHUB_OUTPUT}"
-
-  repo-releases:
-    runs-on: ubuntu-latest
+  find-missing-releases:
     permissions:
-      contents: write # required to get draft releases
+      contents: write # required to get (our) draft releases
     outputs:
-      releases: ${{ steps.swift-releases.outputs.releases }}
+      releases: ${{ steps.missing-releases.outputs.missing-releases }}
+    runs-on: ubuntu-latest
     steps:
-      - name: List Repository releases
-        id: swift-releases
+      - name: Find missing releases
+        id: missing-releases
         env:
-          REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RELEASES="$(gh api "repos/${REPO}/releases" --jq 'map(.tag_name)' | jq -cr)"
-          echo "releases=${RELEASES}" >> "${GITHUB_OUTPUT}"
+          PAGE=1
+          function fetch-releases() {
+            gh api -X GET 'repos/apple/swift/releases' -f page="${PAGE}" --jq 'map(select(.prerelease == false and .draft == false) | .tag_name)[]'
+            return $?
+          }
 
-  compare-with-repo-releases:
-    needs:
-      - swift-releases
-      - repo-releases
+          MISSING_RELEASES='[]'
+          RELEASES_JSON="$(fetch-releases)"
+          while [[ -n "${RELEASES_JSON}" ]]; do
+            DID_ADD=0
+            while IFS= read -r SWIFT_RELEASE; do
+              if [[ "${SWIFT_RELEASE}" =~ ^swift-([0-9]+)\.([0-9]+)(\.[0-9]+)?-RELEASE$ ]]; then
+                if [[ "${BASH_REMATCH[1]}" -ge 5 ]]; then
+                  if [[ "${BASH_REMATCH[1]}" -gt 5 ]] || [[ "${BASH_REMATCH[2]}" -ge 9 ]]; then
+                    OUR_RELEASE_TAG="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
+                    MISSING_RELEASES="$(jq -cn --arg TAG "${OUR_RELEASE_TAG}" --arg SWIFT "${SWIFT_RELEASE}" --argjson RELEASES "${MISSING_RELEASES}" '$RELEASES + [{"version": $TAG, "swift": $SWIFT}]')"
+                    DID_ADD=1
+                  else
+                    echo "::debug::Skipping ${SWIFT_RELEASE} because it is older than Swift 5.9."
+                  fi
+                else
+                  echo "::debug::Skipping ${SWIFT_RELEASE} because it is older than Swift 5."
+                fi
+              else
+                echo "::notice::Skipping ${SWIFT_RELEASE} because it does not match the expected format!"
+              fi
+            done <<< "${RELEASES_JSON}"
+            if [[ "${DID_ADD}" -eq 0 ]]; then
+              break
+            fi
+            ((PAGE++))
+            RELEASES_JSON="$(fetch-releases)"
+          done
+          echo "missing-releases=${MISSING_RELEASES}" >> "${GITHUB_OUTPUT}"
+
+  create-missing-releases:
+    needs: find-missing-releases
+    if: ${{ needs.find-missing-releases.outputs.releases != '[]' }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        swift-release: ${{ fromJson(needs.swift-releases.outputs.releases) }}
+        release: ${{ fromJson(needs.find-missing-releases.outputs.releases) }}
     steps:
-      - name: Determine Repo Release
-        id: repo-release
-        env:
-          SWIFT_RELEASE: ${{ matrix.swift-release }}
-        run: |
-          if [[ "${SWIFT_RELEASE}" =~ ^swift-([0-9]+)\.([0-9]+)(\.[0-9]+)?-RELEASE$ ]]; then
-            if [[ "${BASH_REMATCH[1]}" -ge 5 ]]; then
-              if [[ "${BASH_REMATCH[1]}" -gt 5 ]] || [[ "${BASH_REMATCH[2]}" -ge 9 ]]; then
-                echo "repo-version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}${BASH_REMATCH[3]}" >> "${GITHUB_OUTPUT}"
-              else
-                echo "Skipping ${SWIFT_RELEASE} because it is older than Swift 5.9"
-              fi
-            else
-              echo "Skipping ${SWIFT_RELEASE} because it is older than Swift 5"
-            fi
-          else
-            echo "Skipping ${SWIFT_RELEASE} because it does not match the expected format"
-          fi
       - name: Create Repo Release
-        if: ${{ steps.repo-release.outputs.repo-version != '' && !contains(fromJson(needs.repo-releases.outputs.releases), steps.repo-release.outputs.repo-version) }}
         env:
           REPO: ${{ github.repository }}
-          REPO_VERSION: ${{ steps.repo-release.outputs.repo-version }}
-          SWIFT_RELEASE: ${{ matrix.swift-release }}
+          REPO_VERSION: ${{ fromJson(matrix.release).version }}
+          SWIFT_RELEASE: ${{ fromJson(matrix.release).swift }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${REPO_VERSION}" \
