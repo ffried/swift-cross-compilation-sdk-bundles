@@ -23,6 +23,10 @@ inputs:
   target-os-version:
     description: 'Target OS version'
     required: true
+  github-token:
+    description: 'GitHub token'
+    required: true
+    default: ${{ github.token }}
 
 outputs:
   sdk-bundle-name:
@@ -49,7 +53,7 @@ runs:
         REPO: 'ffried/swift-cross-compilation-sdk-bundles'
         RELEASE_NAME: ${{ inputs.swift-version }}
         ASSET_NAME: ${{ steps.names.outputs.full-name }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         ASSET_URL="$(gh release view --repo "${REPO}" "${RELEASE_NAME}" --json assets --jq "(.assets | map({\"key\": .label, \"value\": .url}) | from_entries)[\"${ASSET_NAME}\"]")"
         if [ -z "${ASSET_URL}" ]; then
