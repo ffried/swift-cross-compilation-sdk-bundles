@@ -97,9 +97,13 @@ runs:
         BUNDLE_NAME: ${{ steps.bundle-names.outputs.base-name }}
         BUNDLE_FULL_NAME: ${{ steps.bundle-names.outputs.full-name }}
       run: |
+        WITH_DOCKER_ARG=''
+        if [ "${TARGET_ARCH}" != 'arm64' ]; then
+          WITH_DOCKER_ARG='--with-docker'
+        fi
         swift run -c release \
             swift-sdk-generator \
-              --with-docker \
+              ${WITH_DOCKER_ARG} \
               --swift-version "${SWIFT_VERSION}-RELEASE" \
               --host-arch "${HOST_ARCH}" \
               --linux-distribution-name "${TARGET_OS}" \
