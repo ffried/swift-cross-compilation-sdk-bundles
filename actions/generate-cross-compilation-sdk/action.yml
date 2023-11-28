@@ -97,6 +97,8 @@ runs:
         BUNDLE_NAME: ${{ steps.bundle-names.outputs.base-name }}
         BUNDLE_FULL_NAME: ${{ steps.bundle-names.outputs.full-name }}
       run: |
+        # Docker fails to build for arm64
+        # https://github.com/apple/swift-sdk-generator/issues/57
         WITH_DOCKER_ARG=''
         if [ "${TARGET_ARCH}" != 'arm64' ]; then
           WITH_DOCKER_ARG='--with-docker'
