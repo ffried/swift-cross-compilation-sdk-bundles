@@ -65,8 +65,9 @@ runs:
         RUNNER_OS_VERSION: ${{ steps.os-version.outputs.version }}
       run: |
         if [ "${RUNNER_OS}" = 'macOS' ] && [[ "${RUNNER_OS_VERSION}" =~ ^13(\.[0-9]+(\.[0-9]+)?)?$ ]]; then
-            echo 'Unlinking Python 3.12 and Python to avoid conflicts with Homebrew on macOS 13'
-            brew unlink python@3.12 python || true
+            echo 'Re-linking Python 3.12 and Python to avoid conflicts with Homebrew on macOS 13'
+            brew unlink python@3.12 || true
+            brew link --overwrite python@3.12 || true
         fi
         brew install cmake colima docker ninja
     - name: Start Colima
