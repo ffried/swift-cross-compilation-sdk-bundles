@@ -49,40 +49,31 @@ jobs:
       fail-fast: false
       matrix:
         host-os:
-          - 'macos-13'
+          - 'macos'
+        host-os-version:
+          - '13'
+          - '14'
         host-arch:
           - 'x86_64'
           - 'arm64'
         target-os:
-          - 'ubuntu-22.04'
+          - 'ubuntu'
+        target-os-version:
+          - '22.04'
         target-arch:
           - 'x86_64'
           - 'arm64'
-    runs-on: ${{ matrix.host-os }}
+    runs-on: ${{ matrix.host-os }}-${{ matrix.host-os-version }}
     steps:
-      - name: OS Details
-        id: os-details
-        env:
-          HOST_OS_AND_VERSION: ${{ matrix.host-os }}
-          TARGET_OS_AND_VERSION: ${{ matrix.target-os }}
-        run: |
-          HOST_OS="$(echo "${HOST_OS_AND_VERSION}" | cut -d'-' -f1)"
-          HOST_OS_VERSION="$(echo "${HOST_OS_AND_VERSION}" | cut -d'-' -f2)"
-          TARGET_OS="$(echo "${TARGET_OS_AND_VERSION}" | cut -d'-' -f1)"
-          TARGET_OS_VERSION="$(echo "${TARGET_OS_AND_VERSION}" | cut -d'-' -f2)"
-          echo "host-os=${HOST_OS}" >> "${GITHUB_OUTPUT}"
-          echo "host-os-version=${HOST_OS_VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "target-os=${TARGET_OS}" >> "${GITHUB_OUTPUT}"
-          echo "target-os-version=${TARGET_OS_VERSION}" >> "${GITHUB_OUTPUT}"
       - uses: ffried/swift-cross-compilation-sdk-bundles/actions/bundle-name@main
         id: bundle-names
         with:
           swift-version: ${{ needs.context.outputs.swift-version }}
-          host-os: ${{ steps.os-details.outputs.host-os }}
-          host-os-version: ${{ steps.os-details.outputs.host-os-version }}
+          host-os: ${{ matrix.host-os }}
+          host-os-version: ${{ matrix.host-os-version }}
           host-arch: ${{ matrix.host-arch }}
-          target-os: ${{ steps.os-details.outputs.target-os }}
-          target-os-version: ${{ steps.os-details.outputs.target-os-version }}
+          target-os: ${{ matrix.target-os }}
+          target-os-version: ${{ matrix.target-os-version }}
           target-arch: ${{ matrix.target-arch }}
       - name: Check for existing asset
         if: ${{ needs.context.outputs.force-recreate != 'true' }}
@@ -100,11 +91,11 @@ jobs:
         id: generate-sdk
         with:
           swift-version: ${{ needs.context.outputs.swift-version }}
-          host-os: ${{ steps.os-details.outputs.host-os }}
-          host-os-version: ${{ steps.os-details.outputs.host-os-version }}
+          host-os: ${{ matrix.host-os }}
+          host-os-version: ${{ matrix.host-os-version }}
           host-arch: ${{ matrix.host-arch }}
-          target-os: ${{ steps.os-details.outputs.target-os }}
-          target-os-version: ${{ steps.os-details.outputs.target-os-version }}
+          target-os: ${{ matrix.target-os }}
+          target-os-version: ${{ matrix.target-os-version }}
           target-arch: ${{ matrix.target-arch }}
       - name: Upload assets
         if: ${{ steps.existing-asset.outputs.found != 'true' }}
