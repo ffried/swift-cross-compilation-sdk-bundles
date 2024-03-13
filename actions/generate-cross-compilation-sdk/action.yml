@@ -52,6 +52,18 @@ runs:
         target-arch: ${{ inputs.target-arch }}
         target-os: ${{ inputs.target-os }}
         target-os-version: ${{ inputs.target-os-version }}
+    - uses: ffried/swift-cross-compilation-sdk-bundles/actions/triple@main
+      id: host-triple
+      with:
+        os: ${{ inputs.host-os }}
+        os-version: ${{ inputs.host-os-version }}
+        arch: ${{ inputs.host-arch }}
+    - uses: ffried/swift-cross-compilation-sdk-bundles/actions/triple@main
+      id: target-triple
+      with:
+        os: ${{ inputs.target-os }}
+        os-version: ${{ inputs.target-os-version }}
+        arch: ${{ inputs.target-arch }}
     - uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '^15.0'
@@ -96,27 +108,21 @@ runs:
       shell: bash
       env:
         SWIFT_VERSION: ${{ inputs.swift-version }}
-        HOST_OS: ${{ inputs.host-os }}
-        HOST_OS_VERSION: ${{ inputs.host-os-version }}
-        HOST_ARCH: ${{ inputs.host-arch }}
+        HOST_TRIPLE: ${{ steps.host-triple.outputs.triple }}
+        TARGET_TRIPLE: ${{ steps.target-triple.outputs.triple }}
         TARGET_OS: ${{ inputs.target-os }}
         TARGET_OS_VERSION: ${{ inputs.target-os-version }}
-        TARGET_ARCH: ${{ inputs.target-arch }}
         BUNDLE_NAME: ${{ steps.bundle-names.outputs.base-name }}
         BUNDLE_FULL_NAME: ${{ steps.bundle-names.outputs.full-name }}
       run: |
-        TARGET_SYSTEM='linux'
-        if [ "${TARGET_OS}" = 'macos' ]; then
-            TARGET_SYSTEM='macos'
-        fi
         swift run -c release \
             swift-sdk-generator \
               make-linux-sdk \
               --with-docker \
               --sdk-name "${BUNDLE_NAME}" \
               --swift-version "${SWIFT_VERSION}-RELEASE" \
-              --host "${HOST_OS}-${HOST_ARCH}" \
-              --target "${TARGET_SYSTEM}-${TARGET_ARCH}" \
+              --host "${HOST_TRIPLE}" \
+              --target "${TARGET_TRIPLE}" \
               --linux-distribution-name "${TARGET_OS}" \
               --linux-distribution-version "${TARGET_OS_VERSION}"
         echo "bundle-path=$(pwd)/Bundles/${BUNDLE_FULL_NAME}" >> "${GITHUB_OUTPUT}"

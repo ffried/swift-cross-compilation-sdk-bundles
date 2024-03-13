@@ -1,0 +1,46 @@
+name: Compose SDK triple
+description: Composes the SDK triple from the given inputs.
+
+inputs:
+  os:
+    description: 'The OS'
+    required: true
+  os-version:
+    description: 'The OS version'
+    required: true
+  arch:
+    description: 'The OS architecture'
+    required: true
+
+outputs:
+  triple:
+    description: SDK Triple
+    value: ${{ steps.triple.outputs.triple }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compose SDK triple
+      id: triple
+      shell: bash
+      env:
+        TRIPLE_OS: ${{ inputs.os }}
+        TRIPLE_OS_VERSION: ${{ inputs.os-version }}
+        TRIPLE_ARCH: ${{ inputs.arch }}
+      run: |
+        CLEANED_ARCH="${TRIPLE_ARCH}"
+        if [ "${TRIPLE_ARCH}" = "arm64" ]; then
+          CLEANED_ARCH="aarch64"
+        fi
+        case "${TRIPLE_OS}" in
+          macos)
+            echo "host-triple=${CLEANED_ARCH}-apple-macosx${TRIPLE_OS_VERSION}.0" >> "${GITHUB_OUTPUT}"
+            ;;
+          ubuntu|rhel)
+            echo "host-triple=${CLEANED_ARCH}-unknown-linux" >> "${GITHUB_OUTPUT}"
+            ;;
+          *)
+            echo "::error::Unsupported OS '${TRIPLE_OS}'"
+            exit 1
+            ;;
+        esac
