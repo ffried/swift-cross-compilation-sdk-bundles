@@ -52,7 +52,7 @@ jobs:
           - 'macos'
         host-os-version:
           - '13'
-          - '14'
+          # - '14' # macos-14 uses M1, which does not support virtualization
         host-arch:
           - 'x86_64'
           - 'arm64'
