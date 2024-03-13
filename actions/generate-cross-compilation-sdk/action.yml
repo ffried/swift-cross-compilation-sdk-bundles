@@ -55,16 +55,23 @@ runs:
     - uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '^15.0'
+    - uses: sersoft-gmbh/os-version-action@v3
+      id: os-version
     - name: Install Dependencies
       shell: bash
       env:
         HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
-      run: brew install cmake colima docker ninja
+        RUNNER_OS: ${{ runner.os }}
+        RUNNER_OS_VERSION: ${{ steps.os-version.outputs.version }}
+      run: |
+        LINK_FLAG=''
+        if [ "${RUNNER_OS}" = 'macOS' ] && [ "${RUNNER_OS_VERSION}" = '13' ]; then
+            LINK_FLAG='--overwrite'
+        fi
+        brew install ${LINK_FLAG} cmake colima docker ninja
     - name: Start Colima
       shell: bash
       run: colima start
-    - uses: sersoft-gmbh/os-version-action@v3
-      id: os-version
     - uses: sersoft-gmbh/swift-version-action@v3
       id: swift-version
     - uses: actions/checkout@v4
