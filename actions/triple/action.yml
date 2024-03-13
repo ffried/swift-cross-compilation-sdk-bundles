@@ -34,10 +34,10 @@ runs:
         fi
         case "${TRIPLE_OS}" in
           macos)
-            echo "host-triple=${CLEANED_ARCH}-apple-macosx${TRIPLE_OS_VERSION}.0" >> "${GITHUB_OUTPUT}"
+            echo "triple=${CLEANED_ARCH}-apple-macosx${TRIPLE_OS_VERSION}.0" >> "${GITHUB_OUTPUT}"
             ;;
           ubuntu|rhel)
-            echo "host-triple=${CLEANED_ARCH}-unknown-linux" >> "${GITHUB_OUTPUT}"
+            echo "triple=${CLEANED_ARCH}-unknown-linux" >> "${GITHUB_OUTPUT}"
             ;;
           *)
             echo "::error::Unsupported OS '${TRIPLE_OS}'"
