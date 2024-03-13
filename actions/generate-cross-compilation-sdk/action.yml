@@ -64,12 +64,11 @@ runs:
         RUNNER_OS: ${{ runner.os }}
         RUNNER_OS_VERSION: ${{ steps.os-version.outputs.version }}
       run: |
-        LINK_FLAG=''
         if [ "${RUNNER_OS}" = 'macOS' ] && [[ "${RUNNER_OS_VERSION}" =~ ^13(\.[0-9]+(\.[0-9]+)?)?$ ]]; then
-            echo "Using --overwrite flag for brew install"
-            LINK_FLAG='--overwrite'
+            echo 'Unlinking Python 3.12 and Python to avoid conflicts with Homebrew on macOS 13'
+            brew unlink python@3.12 python || true
         fi
-        brew install ${LINK_FLAG} cmake colima docker ninja
+        brew install cmake colima docker ninja
     - name: Start Colima
       shell: bash
       run: colima start
