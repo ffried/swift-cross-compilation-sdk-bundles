@@ -66,6 +66,7 @@ runs:
       run: |
         LINK_FLAG=''
         if [ "${RUNNER_OS}" = 'macOS' ] && [[ "${RUNNER_OS_VERSION}" =~ ^13(\.[0-9]+(\.[0-9]+)?)?$ ]]; then
+            echo "Using --overwrite flag for brew install"
             LINK_FLAG='--overwrite'
         fi
         brew install ${LINK_FLAG} cmake colima docker ninja
