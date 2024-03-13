@@ -52,18 +52,18 @@ jobs:
           - 'macos'
         host-os-version:
           - '13'
-          # - '14' # macos-14 uses M1, which does not support virtualization
+          - '14'
         host-arch:
           - 'x86_64'
-          - 'arm64'
+          - 'aarch64'
         target-os:
           - 'ubuntu'
         target-os-version:
           - '22.04'
         target-arch:
           - 'x86_64'
-          - 'arm64'
-    runs-on: ${{ matrix.host-os }}-${{ matrix.host-os-version }}
+          - 'aarch64'
+    runs-on: macos-13  # macOS 14 uses M1, which does not allow virtualization
     steps:
       - uses: ffried/swift-cross-compilation-sdk-bundles/actions/bundle-name@main
         id: bundle-names
