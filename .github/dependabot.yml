@@ -13,7 +13,7 @@ updates:
     reviewers:
       - ffried
   - package-ecosystem: github-actions
-    directory: .github/actions/bundle-name
+    directory: actions/bundle-name
     open-pull-requests-limit: 10
     schedule:
       interval: daily
@@ -24,7 +24,7 @@ updates:
     reviewers:
       - ffried
   - package-ecosystem: github-actions
-    directory: .github/actions/generate-cross-compilation-sdk
+    directory: actions/generate-cross-compilation-sdk
     open-pull-requests-limit: 10
     schedule:
       interval: daily
@@ -35,7 +35,7 @@ updates:
     reviewers:
       - ffried
   - package-ecosystem: github-actions
-    directory: .github/actions/setup
+    directory: actions/setup
     open-pull-requests-limit: 10
     schedule:
       interval: daily
