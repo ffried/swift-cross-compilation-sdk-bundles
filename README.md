@@ -1,5 +1,11 @@
 # Swift Cross-compilation SDK bundles
 
+## ARCHIVE
+
+Note that since the release of the [Swift Static Linux SDK](https://www.swift.org/documentation/articles/static-linux-getting-started.html), this repository is archived.
+
+## Original Description
+
 Stores cross compilation sdk bundles aligned with Swift releases.
 A release is created for each Swift release. The assets on the release contain the SDK bundles.
 
